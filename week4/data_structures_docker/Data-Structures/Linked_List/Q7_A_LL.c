@@ -85,7 +85,7 @@ int main()
 
 ////////////////////////////////////////////////////////////////////////
 
-void RecursiveReverse(ListNode **ptrHead)
+void RecursiveReverse(ListNode **ptrHead) //ptrHead가 바라보는 주소를 바꾸는게 아니라 대상을 바꾼다.
 {
 	if(ptrHead == NULL){
 		return;
@@ -99,10 +99,11 @@ void RecursiveReverse(ListNode **ptrHead)
 		RecursiveReverse(&rest);
 		temp->next->next = temp;
 		temp->next = NULL;
-		*ptrHead = rest;
+		*ptrHead = rest; 
+		//만약 ptrHead = &rest 이러면 ll.head를 바라보는 pointer의 주소만 바뀌는거지 ll.head가 바라보는 대상은 바뀌지 않는다. 
+		//나중에 출력할때 ll을 통해서 접근하기에 계속 똑같은 곳만 바라보는것처럼 된다.
 	}
 }
-
 //////////////////////////////////////////////////////////////////////////////////
 
 void printList(LinkedList *ll){
