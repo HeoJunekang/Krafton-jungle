@@ -106,15 +106,42 @@ void alternateMergeLinkedList(LinkedList *ll1, LinkedList *ll2)
 	if(ll1 == NULL || ll2 == NULL){
 		return;
 	}
-	int len = ll1->size;
-    for(int i = 1; i <= len; i++){
-		if(ll2->head != NULL){
-			insertNode(ll1, 2*i-1, ll2->head->item);
-			removeNode(ll2, 0);
+	//int len = ll1->size;
+    // for(int i = 1; i <= len; i++){
+	// 	if(ll2->head != NULL){
+	// 		insertNode(ll1, 2*i-1, ll2->head->item);
+	// 		removeNode(ll2, 0);
+	// 	}else{
+	// 		return;
+	// 	}
+	// }
+	ListNode *temp = NULL;
+	ListNode *next = NULL;
+	ListNode *l1temp = ll1->head;
+	ListNode *l2temp = ll2->head;
+	while(true){
+		next = l2temp;
+		if(next!= NULL){
+			temp = l1temp->next;
+			l1temp->next = next;
+			l1temp = temp;
 		}else{
+			ll2->head = next;
 			return;
 		}
+		next = l1temp;
+		if(next!= NULL){
+			temp = l2temp->next;
+			l2temp->next = next;
+			l2temp = temp;
+		}else{
+			ll2->head = l2temp->next;
+			l2temp->next = next;
+			return;
+		}
+
 	}
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
