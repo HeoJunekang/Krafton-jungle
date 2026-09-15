@@ -102,6 +102,7 @@ void RecursiveReverse(ListNode **ptrHead) //ptrHead가 바라보는 주소를 �
 		*ptrHead = rest; 
 		//만약 ptrHead = &rest 이러면 ll.head를 바라보는 pointer의 주소만 바뀌는거지 ll.head가 바라보는 대상은 바뀌지 않는다. 
 		//나중에 출력할때 ll을 통해서 접근하기에 계속 똑같은 곳만 바라보는것처럼 된다.
+		//결국 *ptrHead는 ll.head라는 주소노드이다. 이 노드에 무엇을 가리키게 할당할 것인가가 바로 rest이다. 
 	}
 }
 //////////////////////////////////////////////////////////////////////////////////
