@@ -116,11 +116,11 @@ int main()
 
 void createQueueFromLinkedList(LinkedList *ll, Queue *q)
 {
+	removeAllItemsFromQueue(q);
+	
 	ListNode *temp = ll->head;
-	int index = 0;
 	while(temp != NULL){
-		insertNode(&(q->ll), index,temp->item);
-		index++;
+		enqueue(q, temp->item);
 		temp = temp->next;
 	}
 }

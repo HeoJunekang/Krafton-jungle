@@ -143,6 +143,7 @@ void removeEvenValues(Stack *s)
 		}
 	}
 	createStackFromLinkedList(&templl, s);
+	removeAllItems(&templl);
 	
 }
 
