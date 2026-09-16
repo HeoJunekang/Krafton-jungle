@@ -111,7 +111,19 @@ int main()
 
 void removeUntil(Stack *s, int value)
 {
-/* add your code here */
+	if(s == NULL){
+		return;
+	}
+
+	while(s->ll.head != NULL){
+		int item = s->ll.head->item;
+		if(item == value){
+			return;
+		}else{
+			pop(s);
+		}
+	}
+	return;
 }
 
 //////////////////////////////////////////////////////////////////////////////////
