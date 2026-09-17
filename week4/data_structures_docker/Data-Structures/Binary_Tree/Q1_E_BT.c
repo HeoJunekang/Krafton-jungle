@@ -118,7 +118,11 @@ int identical(BTNode *tree1, BTNode *tree2)
 {
     if(tree1 == NULL && tree2 == NULL){
         return 1;
+    }else if (tree1 == NULL || tree2 == NULL)
+    {
+        return 0;
     }
+    
 
     int result;
     if(tree1->item != tree2->item){
