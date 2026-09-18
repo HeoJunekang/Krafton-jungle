@@ -8,6 +8,7 @@ Purpose: Implementing the required functions for Question 7 */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -99,10 +100,52 @@ int main()
 }
 
 //////////////////////////////////////////////////////////////////////////////////
+// 1. 아예 exit로 처리해버림(main에서 try-catch)
+// 2. c에서는 true/false가 없어서 1,0으로 표시 그래서 NULL일때 0으로 표시
+// 3. INT_MAX 사용
+// 4. stack이 정배임. 완전탐색쓰면 나중에 오류남
 
 int smallestValue(BTNode *node)
 {
-	/* add your code here */
+	// if(node == NULL){ //재귀로 풀기
+    //     return INT_MAX; 
+    // }else{
+    //    int small = node->item;
+    //    int rl = smallestValue(node->left);
+    //    if(rl < small){
+    //       small = rl;
+    //    }
+    //    int rr = smallestValue(node->right);
+    //    if(rr < small){
+    //     small = rr;
+    //    }
+    //    return small;
+    // }
+    if(node == NULL){ //stack으로 풀기
+        return 0;
+    }
+
+    Stack stack;
+    stack.top = NULL;
+    push(&stack, node);
+    int small = node->item;
+    while(stack.top != NULL){
+        BTNode *temp = NULL;
+        temp = pop(&stack);
+        if(temp->right != NULL){
+            if(temp->right->item < small){
+                small = temp->right->item;
+            }
+            push(&stack, temp->right);
+        }
+        if(temp->left != NULL){
+            if(temp->left->item < small){
+                small = temp->left->item;
+            }
+            push(&stack, temp->left);
+        }
+    }
+    return small;
 }
 
 //////////////////////////////////////////////////////////////////////////////////
