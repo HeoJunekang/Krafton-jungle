@@ -43,30 +43,34 @@ typedef struct {
 } Config;
 
 static void cfg_set(Config *c, const char *k, const char *v) {
-    if (c->n < MAX_KV) { c->keys[c->n] = k; c->vals[c->n] = v; c->n++; }
+    if (c->n < MAX_KV) { 
+        c->keys[c->n] = k; 
+        c->vals[c->n] = v; 
+        c->n++; }
 }
 
 static const char *cfg_get(const Config *c, const char *k) {
     for (int i = 0; i < c->n; i++)
         if (strcmp(c->keys[i], k) == 0) return c->vals[i];
-    return NULL;                       /* 없는 키 → NULL */
+    return "";                       /* 없는 키 → NULL */
 }
 
 static void expand(const Config *c, const char *tmpl, char *out, size_t outcap) {
     size_t o = 0;
     for (const char *p = tmpl; *p; ) {
-        if (p[0] == '$' && p[1] == '{') {
-            const char *end = strchr(p, '}');
+        if (p[0] == '$' && p[1] == '{') { //p = 시작위치
+            const char *end = strchr(p, '}'); //문자 위치 찾기
             if (!end) break;
-            char key[32];
-            size_t kl = (size_t)(end - (p + 2));
-            if (kl >= sizeof key) kl = sizeof key - 1;
-            memcpy(key, p + 2, kl);
-            key[kl] = '\0';
 
-            const char *v = cfg_get(c, key);      
+            char key[32];
+            size_t kl = (size_t)(end - (p + 2)); //문자길이
+            if (kl >= sizeof key) kl = sizeof key - 1; // 강제로 줄임(마지막 \0삽입해야하기에 -1)
+            memcpy(key, p + 2, kl); //메모리 복사 함수
+            key[kl] = '\0'; //문자열 마지막에 str표시 넣어줌. key에는 
+
+            const char *v = cfg_get(c, key);  //대입할 val꺼내기
             size_t vl = strlen(v);                 
-            if (o + vl < outcap) { memcpy(out + o, v, vl); o += vl; }
+            if (o + vl < outcap) { memcpy(out + o, v, vl); o += vl; } // o는  대입할 곳의 위치, 끝에 \0안붙여줘도 됨..? ->끝이 아님 안 붙여야함
             p = end + 1;
         } else {
             if (o + 1 < outcap) out[o++] = *p;
@@ -77,25 +81,11 @@ static void expand(const Config *c, const char *tmpl, char *out, size_t outcap) 
 }
 
 int main(void) {
-    /* [Thinking Point]
-     * "{ .n = 0 }" 은 멤버 이름을 콕 집어 초기화하는 '지정 초기화자(designated initializer)'다.
-     *   tip 1. 초기화자에 하나라도 값을 주면, 명시하지 않은 나머지 멤버는 전부 0 으로
-     *          채워진다. 즉 keys[], vals[] 배열도 모두 NULL 로 초기화된다.
-     *   tip 2. 만약 그냥 "Config cfg;" 로만 뒀다면 지역 변수라 n·keys·vals 가 쓰레기 값이다.
-     *   생각해보기: n 이 쓰레기 값이면 cfg_set/cfg_get 에서 무슨 일이 벌어질까?
-     *               */
+
     Config cfg = { .n = 0 };
     cfg_set(&cfg, "host", "example.com");
     cfg_set(&cfg, "port", "8080");
 
-    /* [Thinking Point]
-     * "${host}" 처럼 ${...} 로 감싼 부분은 expand 함수가 설정값으로 치환하는 'placeholder' 다.
-     *   tip 1. 이 문자열 자체는 그냥 상수 텍스트일 뿐, 컴파일러가 ${...} 를 해석하지 않는다.
-     *          실제 치환은 런타임에 expand 함수 안에서 키를 찾아 값을 끼워넣는 방식으로 일어난다.
-     *   tip 2. cfg_get("path") 는 등록되지 않은 키라 NULL 을 돌려준다.
-     *   생각해보기: 설정에 없는 키(${path})를 만나면 expand() 는 어떤 값을 받게 되고,
-     *               그 값을 검사 없이 strlen/복사에 쓰면 무슨 일이 벌어질까?
-     *               (힌트: "값이 없다"는 NULL 이지 빈 문자열 ""이 아니다) */
     const char *tmpl = "http://${host}:${port}/${path}/index.html";
     char out[256];
 
@@ -104,3 +94,27 @@ int main(void) {
     printf("url = %s\n", out);
     return 0;
 }
+
+
+    /* [Thinking Point]
+     * "{ .n = 0 }" 은 멤버 이름을 콕 집어 초기화하는 '지정 초기화자(designated initializer)'다.
+     *   tip 1. 초기화자에 하나라도 값을 주면, 명시하지 않은 나머지 멤버는 전부 0 으로
+     *          채워진다. 즉 keys[], vals[] 배열도 모두 NULL 로 초기화된다.
+     *   tip 2. 만약 그냥 "Config cfg;" 로만 뒀다면 지역 변수라 n·keys·vals 가 쓰레기 값이다.
+     *   생각해보기: n 이 쓰레기 값이면 cfg_set/cfg_get 에서 무슨 일이 벌어질까?
+     *               */
+
+      /* [Thinking Point]
+     * "${host}" 처럼 ${...} 로 감싼 부분은 expand 함수가 설정값으로 치환하는 'placeholder' 다.
+     *   tip 1. 이 문자열 자체는 그냥 상수 텍스트일 뿐, 컴파일러가 ${...} 를 해석하지 않는다.
+     *          실제 치환은 런타임에 expand 함수 안에서 키를 찾아 값을 끼워넣는 방식으로 일어난다.
+     *   tip 2. cfg_get("path") 는 등록되지 않은 키라 NULL 을 돌려준다.
+     *   생각해보기: 설정에 없는 키(${path})를 만나면 expand() 는 어떤 값을 받게 되고,
+     *               그 값을 검사 없이 strlen/복사에 쓰면 무슨 일이 벌어질까?
+     *               (힌트: "값이 없다"는 NULL 이지 빈 문자열 ""이 아니다) */
+
+// 풀이과정
+// 1. 문제 오류 찾기
+// 2. 문제 위치 찾은 후 어디서 문제 발생하는지 gdb로 찾기
+// 3. 위치만 찾고 코드 정독(코드 이해)
+// 4. 문제 요구사항 찾은 후 수정->null을 반환 이를 접근할때 오류 발생
