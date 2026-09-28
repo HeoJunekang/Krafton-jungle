@@ -86,7 +86,7 @@ static void split_lines(LineView *out, char *text) {
     * 따라서, strtok은 원본 버퍼를 제자리에서 수정한다. 
     */
     for (char *ln = strtok(text, "\n"); ln && n < MAX_LINES; ln = strtok(NULL, "\n"))
-        out->lines[n++] = ln;
+        out->lines[n++] = ln; //주소 값만 복사
 
     view_set(out, n);
 
