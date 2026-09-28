@@ -41,29 +41,55 @@
 #include <string.h>
 
 #define MAX_LINES 8
+//풀이과정 1
+// typedef struct {
+//     char **lines;    /* 줄 포인터들의 '배열'을 가리킨다 */
+//     int    count;
+// } LineView;
+
+// /* 결과를 뷰에 채운다(포인터를 함수 경계 너머로 옮겨 -Wdangling 을 회피하는 형태) */
+// static void view_set(LineView *out, char **arr, int n) {
+//     out->lines = arr;
+//     out->count = n;
+// }
+
+// static void split_lines(LineView *out, char *text) {
+//     // char *parts[MAX_LINES];              
+//     char **parts = malloc(sizeof(char *) * MAX_LINES);
+//     int n = 0;
+//     /* strtok는 새로 할당하지 않고, 넘겨받은 문자열 내부의 주소를 돌려준다. 
+//     * 따라서, strtok은 원본 버퍼를 제자리에서 수정한다. 
+//     */
+//     for (char *ln = strtok(text, "\n"); ln && n < MAX_LINES; ln = strtok(NULL, "\n"))
+//         parts[n++] = ln;
+
+//     view_set(out, parts, n);
+
+       
+// }
+
+//풀이과정 2
 typedef struct {
-    char **lines;    /* 줄 포인터들의 '배열'을 가리킨다 */
+    /* 줄 포인터들의 '배열'을 가리킨다 */
+    char *lines[MAX_LINES];
     int    count;
 } LineView;
 
 /* 결과를 뷰에 채운다(포인터를 함수 경계 너머로 옮겨 -Wdangling 을 회피하는 형태) */
-static void view_set(LineView *out, char **arr, int n) {
-    out->lines = arr;
+static void view_set(LineView *out, int n) {
     out->count = n;
 }
 
 static void split_lines(LineView *out, char *text) {
-    char *parts[MAX_LINES];              
     int n = 0;
     /* strtok는 새로 할당하지 않고, 넘겨받은 문자열 내부의 주소를 돌려준다. 
     * 따라서, strtok은 원본 버퍼를 제자리에서 수정한다. 
     */
     for (char *ln = strtok(text, "\n"); ln && n < MAX_LINES; ln = strtok(NULL, "\n"))
-        parts[n++] = ln;
+        out->lines[n++] = ln;
 
-    view_set(out, parts, n);      
+    view_set(out, n);
 
-    /* TODO 상기 코드를 수정하여 결과를 호출자가 준 out 에 직접 채운다(값 반환 아님, 지역 주소 반환 아님). */       
 }
 
 /* split_lines 가 쓰던 스택 프레임을, 같은 모양(char*[8])의 지역 배열로 덮는다.
@@ -79,7 +105,7 @@ int main(void) {
     char text[] = "alpha\nbeta\ngamma";
 
     LineView v;
-    split_lines(&v, text);               
+    split_lines(&v, text);          
     warm_stack();                        
 
     long checksum = 0;
@@ -87,5 +113,13 @@ int main(void) {
         checksum += (unsigned char)v.lines[i][0];
 
     printf("lines = %d, checksum = %ld\n", v.count, checksum);
+    // free(v.lines);
     return 0;
 }
+
+
+ /* TODO 상기 코드를 수정하여 결과를 호출자가 준 out 에 직접 채운다(값 반환 아님, 지역 주소 반환 아님). */   
+
+//  풀이방법
+//  1. parts를 heap에 할당
+//  2. 구조체에 직접 할당.
