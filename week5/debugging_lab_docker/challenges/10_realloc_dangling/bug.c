@@ -41,21 +41,20 @@
 
 #define MAX_UNDO 8
 typedef struct {
-    int   *data;
-    size_t len, cap;
-    int   *clipboard;       
-    int   *undo[MAX_UNDO];   
-    int    undo_n;
+    int   *data; //cap만큼 메모리할당 = 4 [0,1,2,0]
+    size_t len, cap; // len=0->3  cap = 4
+    int   *clipboard;       //cap만큼 메모리할당 = 4
+    int   *undo[MAX_UNDO];   //[&data,*8]
+    int    undo_n; // = 0-> 8
 } EditBuffer;
 
 static void eb_init(EditBuffer *e) {
     e->cap = 4;
     e->len = 0;
     e->undo_n = 0;
-    e->data = malloc(e->cap * sizeof(int));
+    e->data = malloc(e->cap * sizeof(int)); 
     if (!e->data) { perror("malloc"); exit(1); }
-    /* data 바로 뒤에 놓이는 별도 할당. data 가 힙 맨 끝(top)이 아니게 되어
-       이후 realloc 이 제자리 확장 대신 '이동'을 택하게 만든다(→ 옛 블록 해제). */
+
     e->clipboard = malloc(e->cap * sizeof(int));
     if (!e->clipboard) { perror("malloc"); exit(1); }
 }
@@ -81,9 +80,9 @@ static void eb_push(EditBuffer *e, int v) {
 static void eb_free(EditBuffer *e) {
     free(e->data);
     free(e->clipboard);
-    for (int i = 0; i < e->undo_n; i++) {
-        free(e->undo[i]);           
-    }
+    // for (int i = 0; i < e->undo_n; i++) {
+    //     free(e->undo[i]);            //문제 발생 바로 
+    // }
     e->undo_n = 0;
     e->data = NULL;
 }
@@ -92,7 +91,7 @@ int main(void) {
     EditBuffer e;
     eb_init(&e);
 
-    for (int i = 0; i < 3; i++) eb_push(&e, i);
+    for (int i = 0; i < 3; i++) eb_push(&e, i); 
 
     eb_snapshot(&e);                 
 
@@ -101,7 +100,21 @@ int main(void) {
     printf("len=%zu cap=%zu head=%d tail=%d\n",
            e.len, e.cap, e.data[0], e.data[e.len - 1]);
 
-    eb_free(&e);                     
+    eb_free(&e);          //문제발생           
     printf("done\n");
     return 0;
 }
+
+
+// if (!e->data) { perror("malloc"); exit(1); }
+//     /* data 바로 뒤에 놓이는 별도 할당. data 가 힙 맨 끝(top)이 아니게 되어
+//        이후 realloc 이 제자리 확장 대신 '이동'을 택하게 만든다(→ 옛 블록 해제). */
+//     e->clipboard = malloc(e->cap * sizeof(int));
+
+// 풀이과정
+// 1. 문제 확인 e->undo free 하자마자 발생-> 이미 free되었다고 함
+// 2. 그럼 e->undo에는 무슨 값이 들어가는 것인가 => e->data
+// 3. 그럼 e->data 값은 언제 해제가 되는건가 
+// 4. 같은 함수 내에서 이미? => 데이터를 찍어보면 주소가 다름!! ->? 왜 다르지?
+// 5. 위에를 보면 e->data를 relloc함. realloc을 하면 기존 주소를 사용할 수도 있지만 주소를 안 사용할 확률이 있음-> 안사용할 경우 기존 주소는 free를 시킴
+// 6. 이때 free가 됨.
