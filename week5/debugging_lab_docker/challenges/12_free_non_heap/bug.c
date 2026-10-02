@@ -79,7 +79,7 @@ static void row_print(const Row *r) {
 
 static void row_free(Row *r) {
     for (int i = 0; i < r->n; i++) {
-        free(r->fields[i]);       
+        free(r->fields[i]);       //오류발생
     }
     r->n = 0;
 }
@@ -89,7 +89,7 @@ int main(void) {
     parse_row(&r, "id,name,dept,salary");
     row_print(&r);
 
-    row_free(&r);                 
+    row_free(&r);                 //오류발생
     printf("done\n");
     return 0;
 }
