@@ -89,7 +89,7 @@ int main(void) {
     parse_row(&r, "id,name,dept,salary");
     row_print(&r);
 
-    row_free(&r);                 //오류발생
+    row_free(&r);                 //오류발생   
     printf("done\n");
     return 0;
 }
