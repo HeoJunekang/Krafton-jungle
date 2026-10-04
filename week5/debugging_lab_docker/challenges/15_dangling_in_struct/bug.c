@@ -79,7 +79,7 @@ static char *audit_record(const char *event) {
 
 static int handle_request(Session *s, const char *action) {
 
-    return s->user->permission(action);    
+    return s->user->permission(action);    //오류발생
 }
 
 int main(void) {
@@ -94,7 +94,7 @@ int main(void) {
     char *rec = audit_record("logout");      
     printf("%s\n", rec);
     
-    printf("second request allowed=%d\n", handle_request(&s, "write"));
+    printf("second request allowed=%d\n", handle_request(&s, "write")); //오류발생
 
     free(rec);
     return 0;
