@@ -282,7 +282,7 @@ void *mm_realloc(void *ptr, size_t size) //재할당하고싶은 블록 포인�
 
     //copySize = *(size_t *)((char *)oldbp - SIZE_T_SIZE); //기존 size
     copySize = GET_SIZE(HDRP(oldptr)) - DSIZE;
-    if(size <= copySize){
+    if(size > copySize){
         oldptr = recoalesce(ptr);
     }
 
@@ -362,40 +362,71 @@ void *mm_malloc(size_t size)
     // }
 }
 
-//asize는 할당하고픈 바이트를 받아서 24바이트 이상의 8의 배수바이트로 만든것
-static void *find_fit(size_t asize)
-{
-    char *bp = cur_free_heap_listp; //heap의 최근 시작주소
-    int count = 0;
-    while(true){
-        if(bp == cur_free_heap_listp && (bp == NULL || count !=0)){
-            break;
-        }
-        count +=1;
+
+// // next_fit
+// //asize는 할당하고픈 바이트를 받아서 24바이트 이상의 8의 배수바이트로 만든것
+// static void *find_fit(size_t asize)
+// {
+//     char *bp = cur_free_heap_listp; //heap의 최근 시작주소
+//     int count = 0;
+//     while(1){
+//         if(bp == cur_free_heap_listp && (bp == NULL || count !=0)){
+//             break;
+//         }
+//         count +=1;
         
 
-        if(bp == NULL){
-            bp = free_heap_listp;
-            continue;
-        }
+//         if(bp == NULL){
+//             bp = free_heap_listp;
+//             continue;
+//         }
         
-        char *p = HDRP(bp);
-        if(GET_ALLOC(p) == 1 && GET_SIZE(p) == 0){
+//         char *p = HDRP(bp);
+//         if(GET_ALLOC(p) == 1 && GET_SIZE(p) == 0){
+//             break;
+//         }
+        
+//         if(GET_ALLOC(p) == 0 && (GET_SIZE(p) > asize+16 || GET_SIZE(p) == asize)){ // 남은것도 24바이트 이상 이어야함. 그래서 16
+//             if(NEXT_FBLKP(bp) == NULL){
+//                 cur_free_heap_listp = free_heap_listp;
+//             }else{
+//                 cur_free_heap_listp = NEXT_FBLKP(bp);
+//             }
+//             return bp;
+//         }
+//         bp = NEXT_FBLKP(bp);
+//     }
+//     return NULL;
+// }
+
+// first_fit
+//asize는 할당하고픈 바이트를 받아서 24바이트 이상의 8의 배수바이트로 만든것
+
+static void *find_fit(size_t asize)
+{
+    char *bp = free_heap_listp;
+
+    while (true) {
+        if (bp == NULL) {
             break;
         }
-        
-        if(GET_ALLOC(p) == 0 && (GET_SIZE(p) > asize+16 || GET_SIZE(p) == asize)){ // 남은것도 24바이트 이상 이어야함. 그래서 16
-            if(NEXT_FBLKP(bp) == NULL){
-                cur_free_heap_listp = free_heap_listp;
-            }else{
-                cur_free_heap_listp = NEXT_FBLKP(bp);
-            }
+
+        char *p = HDRP(bp);
+        if (GET_ALLOC(p) == 1 && GET_SIZE(p) == 0) {
+            break;
+        }
+
+        if (GET_ALLOC(p) == 0 &&
+            (GET_SIZE(p) > asize + 16 || GET_SIZE(p) == asize)) {
             return bp;
         }
+
         bp = NEXT_FBLKP(bp);
     }
+
     return NULL;
 }
+
 
 static void place(void *bp, size_t asize)
 {
