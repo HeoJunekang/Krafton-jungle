@@ -81,6 +81,7 @@ static  void *extend_heap(size_t words);
 //explicit
 #define NEXT_FBLKP(bp) (*(char **)(FTRP(bp)-8)) //다음 가용리스트 bp의 주소
 static void *free_heap_listp;
+static void *cur_free_heap_listp;
 static void *insert_free_heaplist(void *bp);
 void *delete_free_heaplist(void *bp);
 static int size;
@@ -145,6 +146,7 @@ void *insert_free_heaplist(void *bp)
 {
     if(size == 0){ //가용리스트 하나도 없을때
         free_heap_listp = bp; //가용리스트 처음 갱신
+        cur_free_heap_listp = free_heap_listp;
         *(char **)free_heap_listp = NULL; 
         *(char **)(FTRP(bp)-8) = NULL;// 이전, 다음 블록 NULL로 만들기
     }else{
@@ -173,6 +175,13 @@ void *delete_free_heaplist(void *bp){
         *(char **)nextTemp = pretemp;
     }
     size -= 1;
+    if(bp ==cur_free_heap_listp){
+        if(NEXT_FBLKP(bp) == NULL){
+            cur_free_heap_listp = free_heap_listp;
+        }else{
+            cur_free_heap_listp = NEXT_FBLKP(bp);
+        }
+    }
     return bp;
 }
 
@@ -218,7 +227,7 @@ static void *coalesce(void *bp) // 앞뒤의 가용한 블록에 대해서 연�
     return bp; //새로 갱신한 블록의 시작주소(헤더 앞)
 }
 
-static void *recoalesce(void *bp) // 앞뒤의 가용한 블록에 대해서 연결 후 새로운블록의 시작주소 리턴
+static void *recoalesce(void *bp) // 앞뒤의 가용한 블록에 대해서 연결 후 새로운블록의 시작주소 리턴-> 할당블록 늘리기
 {
     size_t prev_alloc = GET_ALLOC(FTRP(PREV_BLKP(bp))); // 이전 블록 할당여부
     size_t next_alloc = GET_ALLOC(HDRP(NEXT_BLKP(bp))); // 다음 블록 할당여부
@@ -354,20 +363,33 @@ void *mm_malloc(size_t size)
 }
 
 //asize는 할당하고픈 바이트를 받아서 24바이트 이상의 8의 배수바이트로 만든것
-static void *find_fit(size_t asize) //776 
+static void *find_fit(size_t asize)
 {
-    char *bp = free_heap_listp; //heap의 시작주소
+    char *bp = cur_free_heap_listp; //heap의 최근 시작주소
+    int count = 0;
     while(true){
-        if(bp == NULL){
+        if(bp == cur_free_heap_listp && (bp == NULL || count !=0)){
             break;
         }
+        count +=1;
+        
 
+        if(bp == NULL){
+            bp = free_heap_listp;
+            continue;
+        }
+        
         char *p = HDRP(bp);
         if(GET_ALLOC(p) == 1 && GET_SIZE(p) == 0){
             break;
         }
-
+        
         if(GET_ALLOC(p) == 0 && (GET_SIZE(p) > asize+16 || GET_SIZE(p) == asize)){ // 남은것도 24바이트 이상 이어야함. 그래서 16
+            if(NEXT_FBLKP(bp) == NULL){
+                cur_free_heap_listp = free_heap_listp;
+            }else{
+                cur_free_heap_listp = NEXT_FBLKP(bp);
+            }
             return bp;
         }
         bp = NEXT_FBLKP(bp);
