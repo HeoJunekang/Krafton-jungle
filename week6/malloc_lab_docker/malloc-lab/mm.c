@@ -218,11 +218,52 @@ static void *coalesce(void *bp) // 앞뒤의 가용한 블록에 대해서 연�
     return bp; //새로 갱신한 블록의 시작주소(헤더 앞)
 }
 
+static void *recoalesce(void *bp) // 앞뒤의 가용한 블록에 대해서 연결 후 새로운블록의 시작주소 리턴
+{
+    size_t prev_alloc = GET_ALLOC(FTRP(PREV_BLKP(bp))); // 이전 블록 할당여부
+    size_t next_alloc = GET_ALLOC(HDRP(NEXT_BLKP(bp))); // 다음 블록 할당여부
+    size_t size = GET_SIZE(HDRP(bp)); //현재 블록의 크기
+    
+
+    if(prev_alloc && next_alloc) { //둘다 할당되어있는 경우
+        
+    }
+
+    else if(prev_alloc && !next_alloc){ //다음은 free
+        delete_free_heaplist(NEXT_BLKP(bp));
+
+        size += GET_SIZE(HDRP(NEXT_BLKP(bp))); //size  값 갱신
+        PUT(HDRP(bp), PACK(size, 1)); //헤더에 덮어씌우기 , 할당x
+        PUT(FTRP(bp), PACK(size, 1)); // 헤더에 사이즈 만큼 이동 후 footer값 갱신 즉, 새로운 블록 footer 갱신, 할당x
+    }
+
+    else if(!prev_alloc && next_alloc){ //이전이 free
+        delete_free_heaplist(PREV_BLKP(bp));
+
+        size += GET_SIZE(HDRP(PREV_BLKP(bp)));
+        PUT(FTRP(bp), PACK(size, 1)); // footer 갱신
+        PUT(HDRP(PREV_BLKP(bp)), PACK(size, 1)); //헤더정보 갱신
+        bp = PREV_BLKP(bp); //갱신된 블록의 시작지점으로 bp 갱신
+    }
+
+    else{ //둘다 free인 경우
+        delete_free_heaplist(NEXT_BLKP(bp));
+        delete_free_heaplist(PREV_BLKP(bp));
+
+        size += GET_SIZE(HDRP(PREV_BLKP(bp))) + GET_SIZE(FTRP(NEXT_BLKP(bp)));
+        PUT(HDRP(PREV_BLKP(bp)), PACK(size, 1));
+        PUT(FTRP(NEXT_BLKP(bp)), PACK(size, 1));
+        bp = PREV_BLKP(bp);
+    }
+    return bp; //새로 갱신한 블록의 시작주소(헤더 앞)
+}
+
 /*
  * mm_realloc - Implemented simply in terms of mm_malloc and mm_free
  */
 void *mm_realloc(void *ptr, size_t size) //재할당하고싶은 블록 포인터, 설정하고 싶은 크기
 {
+    void *oldptr_fd = ptr; //블록 포인터 저장(데이터 읽기용)
     void *oldptr = ptr; //블록 포인터 저장
     void *newptr; // 새로운 포인터 선언
     size_t copySize; // 기존 크기 
@@ -233,6 +274,15 @@ void *mm_realloc(void *ptr, size_t size) //재할당하고싶은 블록 포인�
     //copySize = *(size_t *)((char *)oldbp - SIZE_T_SIZE); //기존 size
     copySize = GET_SIZE(HDRP(oldptr)) - DSIZE;
     if(size <= copySize){
+        oldptr = recoalesce(ptr);
+    }
+
+    copySize = GET_SIZE(HDRP(oldptr)) - DSIZE;
+    if(size <= copySize){
+        //줄인만큼 메모리 복사
+        copySize = size;
+        newptr = oldptr;
+        memcpy(newptr, oldptr_fd, copySize); //어차피 해당 블록의 크기는 바뀌지 않고 데이터 양만 줄음
         size_t asize;
         //받은 size 정제과정
         if(size <= DSIZE)
@@ -247,12 +297,8 @@ void *mm_realloc(void *ptr, size_t size) //재할당하고싶은 블록 포인�
             PUT(FTRP(NEXT_BLKP(oldptr)), PACK(copySize - asize, 0));
             insert_free_heaplist(NEXT_BLKP(oldptr));
         }
-        //줄인만큼 메모리 복사
-        copySize = size;
-        newptr = oldptr;
-        memcpy(newptr, oldptr, copySize); //어차피 해당 블록의 크기는 바뀌지 않고 데이터 양만 줄음
         return newptr;
-    }else{
+    }
     // 더 늘리는 경우
     newptr = mm_malloc(size); //size만큼 재 할당 -> 가용블록 리스트 내에서 찾고 없으면 재할당
     if (newptr == NULL)// 할당 불가능 NULL반환
@@ -260,28 +306,10 @@ void *mm_realloc(void *ptr, size_t size) //재할당하고싶은 블록 포인�
     copySize = *(size_t *)((char *)oldptr - SIZE_T_SIZE);//기존 데이터 크기
     if (size < copySize)
         copySize = size; //더작은것을 골라야 실제로 할당된 데이터를 다 읽으므로 아니면 잘리거나, 더 크게 읽으면 없는 데이터도 읽게됨
-    memcpy(newptr, oldptr, copySize);
+    memcpy(newptr, oldptr_fd, copySize);
     mm_free(oldptr);
     return newptr;
-    }
 }
-
-// void *mm_realloc(void *ptr, size_t size)
-// {
-//     void *oldptr = ptr;
-//     void *newptr;
-//     size_t copySize;
-
-//     newptr = mm_malloc(size);
-//     if (newptr == NULL)
-//         return NULL;
-//     copySize = *(size_t *)((char *)oldptr - SIZE_T_SIZE);
-//     if (size < copySize)
-//         copySize = size;
-//     memcpy(newptr, oldptr, copySize);
-//     mm_free(oldptr);
-//     return newptr;
-// }
 
 
 void *mm_malloc(size_t size)
