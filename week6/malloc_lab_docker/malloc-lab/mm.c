@@ -221,22 +221,67 @@ static void *coalesce(void *bp) // 앞뒤의 가용한 블록에 대해서 연�
 /*
  * mm_realloc - Implemented simply in terms of mm_malloc and mm_free
  */
-void *mm_realloc(void *ptr, size_t size)
+void *mm_realloc(void *ptr, size_t size) //재할당하고싶은 블록 포인터, 설정하고 싶은 크기
 {
-    void *oldptr = ptr;
-    void *newptr;
-    size_t copySize;
+    void *oldptr = ptr; //블록 포인터 저장
+    void *newptr; // 새로운 포인터 선언
+    size_t copySize; // 기존 크기 
 
-    newptr = mm_malloc(size);
-    if (newptr == NULL)
+    if(size == 0)
         return NULL;
-    copySize = *(size_t *)((char *)oldptr - SIZE_T_SIZE);
-    if (size < copySize)
+
+    //copySize = *(size_t *)((char *)oldbp - SIZE_T_SIZE); //기존 size
+    copySize = GET_SIZE(HDRP(oldptr)) - DSIZE;
+    if(size <= copySize){
+        size_t asize;
+        //받은 size 정제과정
+        if(size <= DSIZE)
+            asize = 3*DSIZE; 
+        else
+            asize = DSIZE * ((size + (DSIZE)+ (DSIZE-1)) / DSIZE); 
+
+        if(copySize > asize +16){ // 기존 size가 정제된 사이즈를 빼도 24바이트보다 클때 분할
+            PUT(HDRP(oldptr), PACK(asize, 1));
+            PUT(FTRP(oldptr), PACK(asize, 1));
+            PUT(HDRP(NEXT_BLKP(oldptr)), PACK(copySize - asize, 0));
+            PUT(FTRP(NEXT_BLKP(oldptr)), PACK(copySize - asize, 0));
+            insert_free_heaplist(NEXT_BLKP(oldptr));
+        }
+        //줄인만큼 메모리 복사
         copySize = size;
+        newptr = oldptr;
+        memcpy(newptr, oldptr, copySize); //어차피 해당 블록의 크기는 바뀌지 않고 데이터 양만 줄음
+        return newptr;
+    }else{
+    // 더 늘리는 경우
+    newptr = mm_malloc(size); //size만큼 재 할당 -> 가용블록 리스트 내에서 찾고 없으면 재할당
+    if (newptr == NULL)// 할당 불가능 NULL반환
+        return NULL;
+    copySize = *(size_t *)((char *)oldptr - SIZE_T_SIZE);//기존 데이터 크기
+    if (size < copySize)
+        copySize = size; //더작은것을 골라야 실제로 할당된 데이터를 다 읽으므로 아니면 잘리거나, 더 크게 읽으면 없는 데이터도 읽게됨
     memcpy(newptr, oldptr, copySize);
     mm_free(oldptr);
     return newptr;
+    }
 }
+
+// void *mm_realloc(void *ptr, size_t size)
+// {
+//     void *oldptr = ptr;
+//     void *newptr;
+//     size_t copySize;
+
+//     newptr = mm_malloc(size);
+//     if (newptr == NULL)
+//         return NULL;
+//     copySize = *(size_t *)((char *)oldptr - SIZE_T_SIZE);
+//     if (size < copySize)
+//         copySize = size;
+//     memcpy(newptr, oldptr, copySize);
+//     mm_free(oldptr);
+//     return newptr;
+// }
 
 
 void *mm_malloc(size_t size)
@@ -281,7 +326,7 @@ void *mm_malloc(size_t size)
 }
 
 //asize는 할당하고픈 바이트를 받아서 24바이트 이상의 8의 배수바이트로 만든것
-static void *find_fit(size_t asize)
+static void *find_fit(size_t asize) //776 
 {
     char *bp = free_heap_listp; //heap의 시작주소
     while(true){
